@@ -1,0 +1,29 @@
+import type { NextFunction, Request, Response } from 'express';
+
+import { verifyToken } from '../auth/jwt.js';
+
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    sub: string;
+    email: string;
+    role: string;
+  };
+}
+
+export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  const header = req.headers.authorization;
+
+  if (!header?.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  const token = header.slice(7);
+
+  try {
+    req.user = verifyToken(token);
+    next();
+  } catch {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+}
