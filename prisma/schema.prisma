@@ -1,13 +1,180 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+}
+
+// ---------- ENUMS ----------
+
+enum OrderType {
+  SO
+  PO
+}
+
+enum OrderStatus {
+  Processing
+  Shipped
+  Delivered
+  Delayed
+  PendingSync @map("Pending Sync")
+}
+
+enum SyncStatus {
+  Synchronized
+  PendingSync @map("Pending Sync")
+}
+
+enum RiskLevel {
+  Low
+  Medium
+  High
+}
+
+enum UserRole {
+  BSM
+  BSMAssistant     @map("BSM Assistant")
+  BSMSupport       @map("BSM Support")
+  Procurement
+  SalesOperations  @map("Sales Operations")
+  AccountManager   @map("Account Manager")
+  GroupHead        @map("Group Head")
+  President
+  Administrator
+}
+
+enum UserStatus {
+  Active
+  Inactive
+}
+
+enum NotificationType {
+  eta_update
+  sync_success
+  sync_error
+  delay_warning
+  access_request
+  system
+}
+
+enum SyncLogStatus {
+  Success
+  Failure
+}
+
+enum SyncLogType {
+  SalesOrders     @map("Sales Orders")
+  PurchaseOrders  @map("Purchase Orders")
+  All
+}
+
+// ---------- MODELS ----------
+
+model User {
+  id             String       @id
+  name           String
+  email          String       @unique
+  role           UserRole
+  status         UserStatus   @default(Active)
+  lastActive     DateTime?    @map("last_active")
+  allowedModules String[]     @map("allowed_modules")
+
+  assignedOrders Order[]
+  etaHistory     EtaHistory[]
+  notes          OrderNote[]
+
+  @@map("users")
+}
+
+model Order {
+  id               String      @id
+  type             OrderType
+  customerOrVendor String      @map("customer_or_vendor")
+  orderDate        DateTime    @map("order_date") @db.Date
+  status           OrderStatus @default(Processing)
+  assignedTo       String?     @map("assigned_to")
+  assignedUser     User?       @relation(fields: [assignedTo], references: [id])
+  department       String?
+  totalAmount      Decimal     @default(0) @map("total_amount") @db.Decimal(14, 2)
+  syncStatus       SyncStatus  @default(PendingSync) @map("sync_status")
+  lastSync         DateTime?   @map("last_sync")
+  supplierRisk     RiskLevel?  @map("supplier_risk")
+  slaThresholdDays Int?        @map("sla_threshold_days")
+  createdAt        DateTime    @default(now()) @map("created_at")
+
+  lineItems     OrderLineItem[]
+  notes         OrderNote[]
+  notifications Notification[]
+
+  @@map("orders")
+}
+
+model OrderLineItem {
+  id          String    @id
+  orderId     String    @map("order_id")
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  partNumber  String    @map("part_number")
+  description String?
+  quantity    Int
+  unitPrice   Decimal   @default(0) @map("unit_price") @db.Decimal(14, 2)
+  eta         DateTime? @db.Date
+
+  etaHistory EtaHistory[]
+
+  @@map("order_line_items")
+}
+
+model EtaHistory {
+  id            String        @id
+  itemId        String        @map("item_id")
+  item          OrderLineItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  previousEta   DateTime?     @map("previous_eta") @db.Date
+  newEta        DateTime      @map("new_eta") @db.Date
+  updatedAt     DateTime      @default(now()) @map("updated_at")
+  updatedBy     String?       @map("updated_by")
+  updatedByUser User?         @relation(fields: [updatedBy], references: [id])
+  remarks       String?
+
+  @@map("eta_history")
+}
+
+model OrderNote {
+  id         String   @id
+  orderId    String   @map("order_id")
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  author     String?
+  authorUser User?    @relation(fields: [author], references: [id])
+  timestamp  DateTime @default(now())
+  text       String
+
+  @@map("order_notes")
+}
+
+model Notification {
+  id        String           @id
+  type      NotificationType
+  title     String
+  message   String
+  timestamp DateTime         @default(now())
+  read      Boolean          @default(false)
+  orderId   String?          @map("order_id")
+  order     Order?           @relation(fields: [orderId], references: [id])
+
+  @@map("notifications")
+}
+
+model SyncLog {
+  id                String        @id
+  timestamp         DateTime      @default(now())
+  status            SyncLogStatus
+  recordsProcessed  Int           @default(0) @map("records_processed")
+  type              SyncLogType
+  errorDetails      String?       @map("error_details")
+
+  @@map("sync_logs")
 }
