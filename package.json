@@ -7,6 +7,7 @@
     "dev": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "postinstall": "prisma generate",
     "test": "tsx --test src/routes/health.test.ts"
   },
   "repository": {
@@ -40,6 +41,6 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^26.1.2",
     "tsx": "^4.23.1",
-    "typescript": "^7.0.2"
+    "typescript": "^5.7.0"
   }
 }
