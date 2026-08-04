@@ -36,7 +36,8 @@ Deployed on Render as a Node web service.
 - **Pre-Deploy Command:** `npx prisma migrate deploy`
 
 Environment variables (set in Render's Environment tab):
-- `DATABASE_URL` — Neon Postgres connection string
+- `DATABASE_URL` — Neon Postgres connection string 
+- `JWT_SECRET`— random secret used to sign login tokens
 
 ## Project Structure
 
