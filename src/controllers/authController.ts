@@ -1,16 +1,13 @@
 import type { Request, Response } from 'express';
 
-import { comparePassword, hashPassword } from '../auth/password.js';
+import { comparePassword } from '../auth/password.js';
 import { revokeToken, signToken } from '../auth/jwt.js';
 import type { AuthenticatedRequest } from '../middleware/auth.js';
+import { UserRepository } from '../modules/users/userRepository.js';
+import { UserService } from '../modules/users/userService.js';
 
-const users = new Map<string, { email: string; password: string; role: string }>();
-
-users.set('admin@vimos.local', {
-  email: 'admin@vimos.local',
-  password: await hashPassword('Password123!'),
-  role: 'admin',
-});
+const userRepository = new UserRepository();
+const userService = new UserService(userRepository);
 
 export async function loginController(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body as { email?: string; password?: string };
@@ -20,7 +17,7 @@ export async function loginController(req: Request, res: Response): Promise<void
     return;
   }
 
-  const user = users.get(email);
+  const user = await userService.getUserByEmailForLogin(email);
   if (!user) {
     res.status(401).json({ error: 'Invalid credentials' });
     return;
@@ -32,7 +29,7 @@ export async function loginController(req: Request, res: Response): Promise<void
     return;
   }
 
-  const token = signToken({ sub: email, email: user.email, role: user.role });
+  const token = signToken({ sub: user.id, email: user.email, role: user.role });
   res.status(200).json({ token });
 }
 

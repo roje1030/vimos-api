@@ -27,9 +27,21 @@ export class UserController {
   };
 
   createUser = async (req: Request, res: Response): Promise<void> => {
-    const user = await this.service.createUser(req.body);
-    res.status(201).json(user);
+  const { email, password, role, name } = req.body as {
+    email?: string;
+    password?: string;
+    role?: string;
+    name?: string | null;
   };
+
+    if (!email || !password || !role) {
+      res.status(400).json({ error: 'email, password, and role are required' });
+      return;
+    }
+
+    const user = await this.service.createUser({ email, password, role, name });
+    res.status(201).json(user);
+    };
 
   updateUser = async (req: Request, res: Response): Promise<void> => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;

@@ -1,4 +1,4 @@
-import { UserRepository, type UserRecord } from './userRepository.js';
+import { UserRepository, type UserRecord, type UserWithPassword } from './userRepository.js';
 
 export class UserService {
   constructor(private readonly repository: UserRepository) {}
@@ -11,7 +11,11 @@ export class UserService {
     return this.repository.findById(id);
   }
 
-  async createUser(input: { email: string; name?: string | null; role: string }): Promise<UserRecord> {
+  async getUserByEmailForLogin(email: string): Promise<UserWithPassword | null> {
+    return this.repository.findByEmailWithPassword(email);
+  }
+
+  async createUser(input: { email: string; name?: string | null; role: string; password: string }): Promise<UserRecord> {
     return this.repository.create(input);
   }
 

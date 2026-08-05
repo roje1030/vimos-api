@@ -1,5 +1,6 @@
 import { prisma } from '../../config/prisma.js';
 import type { User as PrismaUser } from '../../generated/prisma/client.js';
+import { hashPassword } from '../../auth/password.js';
 
 export interface UserRecord {
   id: string;
@@ -10,6 +11,12 @@ export interface UserRecord {
   updatedAt: Date;
 }
 
+// Includes the password hash — only used internally for login checks,
+// never returned directly from the API.
+export interface UserWithPassword extends UserRecord {
+  password: string;
+}
+
 function toUserRecord(user: PrismaUser): UserRecord {
   return {
     id: user.id,
@@ -18,6 +25,13 @@ function toUserRecord(user: PrismaUser): UserRecord {
     role: user.role,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+  };
+}
+
+function toUserWithPassword(user: PrismaUser): UserWithPassword {
+  return {
+    ...toUserRecord(user),
+    password: user.password,
   };
 }
 
@@ -34,14 +48,22 @@ export class UserRepository {
     return user ? toUserRecord(user) : null;
   }
 
-  async create(data: { email: string; name?: string | null; role: string }): Promise<UserRecord> {
+  // Used only by login — includes the password hash.
+  async findByEmailWithPassword(email: string): Promise<UserWithPassword | null> {
+    const user = await prisma.user.findUnique({ where: { email } });
+    return user ? toUserWithPassword(user) : null;
+  }
+
+  async create(data: { email: string; name?: string | null; role: string; password: string }): Promise<UserRecord> {
+    const hashedPassword = await hashPassword(data.password);
+
     const user = await prisma.user.create({
       data: {
         id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         email: data.email,
         name: data.name ?? data.email,
         role: data.role as PrismaUser['role'],
-        password: '', // placeholder — real password handling comes with the auth rewrite
+        password: hashedPassword,
         allowedModules: [],
       },
     });
