@@ -7,6 +7,7 @@ import { loadEnv } from './config/env.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import routes from './routes/index.js';
 import userRoutes from './modules/users/userRoutes.js';
+import orderRoutes from './modules/orders/orderRoutes.js';
 
 export function createApp() {
   const env = loadEnv();
@@ -22,6 +23,11 @@ export function createApp() {
 
   app.use(routes);
   app.use(userRoutes);
+  app.use(errorHandler);
+
+  app.use(routes);
+  app.use(userRoutes);
+  app.use(orderRoutes);
   app.use(errorHandler);
 
   return app;
