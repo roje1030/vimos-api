@@ -54,6 +54,38 @@ export class OrderController {
     res.status(201).json(order);
   };
 
+  updateLineItemEta = async (req: Request, res: Response): Promise<void> => {
+    const itemId = Array.isArray(req.params.itemId) ? req.params.itemId[0] : req.params.itemId;
+    if (!itemId) {
+      res.status(400).json({ error: 'Line item id is required' });
+      return;
+    }
+
+    const { newEta, remarks, updatedBy } = req.body as {
+      newEta?: string;
+      remarks?: string | null;
+      updatedBy?: string | null;
+    };
+
+    if (!newEta) {
+      res.status(400).json({ error: 'newEta is required' });
+      return;
+    }
+
+    const order = await this.service.updateLineItemEta(itemId, {
+      newEta: new Date(newEta),
+      remarks,
+      updatedBy,
+    });
+
+    if (!order) {
+      res.status(404).json({ error: 'Line item not found' });
+      return;
+    }
+
+    res.status(200).json(order);
+  };
+
   deleteOrder = async (req: Request, res: Response): Promise<void> => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
     if (!id) {

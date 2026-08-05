@@ -13,6 +13,7 @@ const controller = new OrderController(service);
 router.get('/orders', asyncHandler(controller.listOrders));
 router.get('/orders/:id', asyncHandler(controller.getOrderById));
 router.post('/orders', asyncHandler(controller.createOrder));
+router.patch('/orders/line-items/:itemId/eta', asyncHandler(controller.updateLineItemEta));
 router.delete('/orders/:id', asyncHandler(controller.deleteOrder));
 
 export default router;

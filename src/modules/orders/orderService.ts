@@ -22,6 +22,13 @@ export class OrderService {
     return this.repository.create(input);
   }
 
+  async updateLineItemEta(
+    itemId: string,
+    input: { newEta: Date; remarks?: string | null; updatedBy?: string | null },
+  ): Promise<OrderRecord | null> {
+    return this.repository.updateLineItemEta(itemId, input);
+  }
+
   async deleteOrder(id: string): Promise<void> {
     await this.repository.delete(id);
   }

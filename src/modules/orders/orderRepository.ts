@@ -114,6 +114,42 @@ export class OrderRepository {
     return toOrderRecord(order);
   }
 
+  async updateLineItemEta(
+    itemId: string,
+    data: { newEta: Date; remarks?: string | null; updatedBy?: string | null },
+  ): Promise<OrderRecord | null> {
+    const lineItem = await prisma.orderLineItem.findUnique({ where: { id: itemId } });
+    if (!lineItem) return null;
+
+    const previousEta = lineItem.eta;
+
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.orderLineItem.update({
+        where: { id: itemId },
+        data: { eta: data.newEta },
+      });
+
+      await tx.etaHistory.create({
+        data: {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          itemId,
+          previousEta,
+          newEta: data.newEta,
+          updatedBy: data.updatedBy ?? null,
+          remarks: data.remarks ?? null,
+        },
+      });
+
+      return tx.order.update({
+        where: { id: lineItem.orderId },
+        data: { syncStatus: 'PendingSync', lastSync: new Date() },
+        include: { lineItems: true },
+      });
+    });
+
+    return toOrderRecord(updated);
+  }
+
   async delete(id: string): Promise<void> {
     await prisma.order.delete({ where: { id } }).catch(() => undefined);
   }
